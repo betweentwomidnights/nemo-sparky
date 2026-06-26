@@ -1,0 +1,106 @@
+services:
+  nemotron-omni:
+    build: .
+    image: nemotron-omni-vllm:local
+    container_name: nemotron-omni
+    ipc: host
+    shm_size: "16g"
+    ports:
+      - "30030:8000"
+    volumes:
+      - ${HOME}/.cache/huggingface:/root/.cache/huggingface
+      - ./media:/media:ro
+    environment:
+      - HF_HOME=/root/.cache/huggingface
+      - HUGGINGFACE_HUB_CACHE=/root/.cache/huggingface
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    ulimits:
+      memlock: -1
+      stack: 67108864
+    restart: "no"
+    entrypoint: ["vllm", "serve"]
+    command:
+      - "nvidia/Nemotron-3-Nano-Omni-30B-A3B-Reasoning-NVFP4"
+      - "--host=0.0.0.0"
+      - "--port=8000"
+      - "--trust-remote-code"
+      - "--tensor-parallel-size=1"
+      - "--max-model-len=32768"
+      - "--max-num-seqs=8"
+      - "--max-num-batched-tokens=16384"
+      - "--gpu-memory-utilization=0.35"
+      - "--kv-cache-dtype=fp8"
+      - "--enable-prefix-caching"
+      - "--video-pruning-rate=0.5"
+      - '--limit-mm-per-prompt={"video":1,"image":1,"audio":1}'
+      - '--media-io-kwargs={"video":{"fps":2,"num_frames":256}}'
+      - "--allowed-local-media-path=/media"
+      - "--reasoning-parser=nemotron_v3"
+      - "--enable-auto-tool-choice"
+      - "--tool-call-parser=qwen3_coder"
+      - "--served-model-name=nemotron-omni"
+
+  harness:
+    build: ./harness
+    image: nemotron-omni-harness:local
+    container_name: nemotron-harness
+    ports:
+      - "30031:8000"
+    volumes:
+      - ./media:/media
+      - ./conversations:/app/conversations
+      - ${HOME}:/host:ro
+      # Source bind-mounts so edits land in the container without a rebuild.
+      # Static/templates are picked up on the next request; app.py needs
+      # `docker compose restart harness` to re-import.
+      - ./harness/app.py:/app/app.py:ro
+      - ./harness/templates:/app/templates:ro
+      - ./harness/static:/app/static:ro
+    environment:
+      - VLLM_URL=http://nemotron-omni:8000/v1
+      - VLLM_MODEL=nemotron-omni
+      - SANDBOX_URL=http://sandbox:8000
+      # Port inside the sandbox that the Preview tab reverse-proxies. Nemo serves
+      # his apps here; keep it in sync with the system-prompt guidance.
+      - PREVIEW_PORT=7777
+      - BROWSE_ROOT=/host
+      - MEDIA_ROOT=/media
+      - CONVERSATIONS_DIR=/app/conversations
+      - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-nemo-omni-dev-secret}
+    depends_on:
+      - nemotron-omni
+      - sandbox
+    restart: "no"
+
+  sandbox:
+    # Image is managed by ./nemoctl, NOT by compose. The factory baseline is
+    # built from ./sandbox/Dockerfile as :local; the evolving (frozen) image is
+    # :current, which is what runs here. `nemoctl up` seeds :current from :local
+    # on first run. Do NOT add `build:` back — that would let `compose build`
+    # overwrite Nemo's evolved image. Use `nemoctl reset` for a factory reset.
+    image: nemotron-omni-sandbox:current
+    container_name: nemo-omni-sandbox
+    # No `ports:` — sandbox is reachable only on the compose internal network.
+    # The only host bind is the workspace itself, so the model cannot reach
+    # any other host file from inside this container.
+    volumes:
+      - ./sandbox/workspace:/workspace
+    environment:
+      - WORKSPACE=/workspace
+    # Resource caps: this is Nemo's playground and it shares the Spark's 119 GB
+    # unified memory with gary + the omni model server. Cap it so a runaway
+    # playground process (he pip-installs torch, builds a RAM-hungry audio
+    # visualizer, etc.) gets OOM-killed inside its own container instead of
+    # starving gary. Nudges him toward calling gary's APIs over loading models
+    # locally. Raise mem_limit if he needs more headroom for legit work.
+    mem_limit: 8g
+    memswap_limit: 8g          # == mem_limit -> no swap; OOM-kill, don't thrash
+    mem_reservation: 2g
+    pids_limit: 512            # fork-bomb guard
+    restart: "no"

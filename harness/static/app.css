@@ -1,0 +1,317 @@
+:root {
+  --bg: #0d0f12;
+  --surface: #161a20;
+  --surface-2: #1f242b;
+  --border: #2a3038;
+  --text: #e6e8eb;
+  --text-dim: #8a92a0;
+  --accent: #76b900;
+  --user: #2f3942;
+  --error: #ff6b6b;
+  --tool: #5e8cff;
+  --tool-bg: rgba(94, 140, 255, 0.08);
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+}
+button { font-family: inherit; }
+
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+header {
+  display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+  border-bottom: 1px solid var(--border); background: var(--surface);
+}
+header h1 { font-size: 16px; margin: 0; flex: 1; font-weight: 600; }
+header h1 .dim { color: var(--text-dim); font-weight: 400; }
+header button {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+  padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 13px;
+}
+header button:hover { background: var(--border); }
+
+main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+#messages {
+  flex: 1; overflow-y: auto; padding: 16px;
+  max-width: 1080px; width: 100%; margin: 0 auto;
+}
+
+.message {
+  padding: 12px 16px; margin-bottom: 14px; border-radius: 12px;
+  background: var(--surface);
+}
+.message-user { background: var(--user); }
+.message .content { line-height: 1.55; word-wrap: break-word; }
+.message .content > *:first-child { margin-top: 0; }
+.message .content > *:last-child { margin-bottom: 0; }
+.message .content pre {
+  background: var(--bg); padding: 12px; border-radius: 8px; overflow-x: auto;
+  border: 1px solid var(--border);
+}
+.message .content code {
+  background: var(--bg); padding: 2px 5px; border-radius: 3px; font-size: 0.9em;
+  font-family: ui-monospace, "Menlo", monospace;
+}
+.message .content pre code { padding: 0; background: transparent; }
+
+.round { padding-top: 4px; }
+.round + .round { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+.attachments { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.attachment {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 999px; font-size: 12px;
+  background: var(--surface-2); border: 1px solid var(--border);
+  color: var(--text);
+}
+.attachment .remove {
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  font-size: 16px; margin-left: 4px; padding: 0; line-height: 1;
+}
+.attachment .remove:hover { color: var(--error); }
+
+.reasoning {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 12px; margin-bottom: 8px; font-size: 13px;
+}
+.reasoning summary { cursor: pointer; color: var(--text-dim); user-select: none; }
+.reasoning-content {
+  margin-top: 8px; color: var(--text-dim); line-height: 1.5;
+  border-top: 1px solid var(--border); padding-top: 8px;
+}
+.reasoning-content pre, .reasoning-content code { font-size: 12px; }
+
+.tool-call {
+  border: 1px solid var(--border); background: var(--tool-bg);
+  border-left: 3px solid var(--tool);
+  border-radius: 6px; padding: 8px 12px; margin: 8px 0; font-size: 13px;
+}
+.tool-call .head {
+  display: flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;
+}
+.tool-call .head .name {
+  font-family: ui-monospace, "Menlo", monospace; color: var(--tool); font-weight: 600;
+}
+.tool-call .head .status {
+  margin-left: auto; font-size: 11px; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.tool-call .head .status.error { color: var(--error); }
+.tool-call .head .status.running::after { content: "…"; }
+.tool-call.collapsed .body { display: none; }
+.tool-call .body {
+  margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+}
+.tool-call .args, .tool-call .result {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 4px;
+  padding: 6px 8px; font-family: ui-monospace, "Menlo", monospace; font-size: 12px;
+  overflow-x: auto; white-space: pre-wrap; word-break: break-word; max-height: 320px; overflow-y: auto;
+}
+.tool-call .args { margin-bottom: 6px; }
+.tool-call .label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-dim); margin-bottom: 2px;
+}
+
+#composer {
+  border-top: 1px solid var(--border); padding: 12px 16px;
+  max-width: 1080px; width: 100%; margin: 0 auto;
+}
+#composer #attachments { margin-bottom: 8px; }
+#composer .row { display: flex; gap: 8px; align-items: flex-end; }
+#composer textarea {
+  flex: 1; background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: 8px; padding: 10px; font-family: inherit; font-size: 14px; resize: none;
+  min-height: 40px; max-height: 240px; line-height: 1.4;
+}
+#composer textarea:focus { outline: 1px solid var(--accent); }
+#composer button {
+  padding: 10px 16px; background: var(--accent); color: black; border: none;
+  border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 14px;
+}
+#composer button:hover { filter: brightness(1.1); }
+#composer button:disabled { opacity: 0.5; cursor: not-allowed; }
+#composer #btn-attach {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+  padding: 10px 12px;
+}
+
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 400px; max-width: 90vw;
+  background: var(--surface); border-left: 1px solid var(--border);
+  padding: 16px 20px; overflow-y: auto;
+  transform: translateX(100%); transition: transform 0.18s ease-out;
+  z-index: 10;
+}
+.drawer.drawer-left {
+  right: auto; left: 0; border-left: none; border-right: 1px solid var(--border);
+  transform: translateX(-100%);
+}
+.drawer.open { transform: translateX(0); box-shadow: -8px 0 24px rgba(0,0,0,0.3); }
+.drawer.drawer-left.open { box-shadow: 8px 0 24px rgba(0,0,0,0.3); }
+
+/* When the left workspace drawer is open, squeeze the chat beside it instead
+   of letting the drawer cover it. Header + main shift right by the drawer
+   width; #messages (max-width 1080, auto-centered) just re-wraps narrower. */
+#app > header, #app > main { transition: margin 0.18s ease-out; }
+#app.ws-open > header, #app.ws-open > main { margin-left: 400px; }
+/* Too narrow to give both a fair share — fall back to the old overlay. */
+@media (max-width: 820px) {
+  #app.ws-open > header, #app.ws-open > main { margin-left: 0; }
+}
+
+/* Preview pane: a right-docked window onto the app Nemo is serving. Like the
+   workspace drawer, it squeezes the chat rather than covering it. */
+#preview-pane {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 600px; max-width: 92vw;
+  background: var(--surface); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; overflow: hidden;
+  transform: translateX(100%); transition: transform 0.18s ease-out;
+  z-index: 10;
+}
+#preview-pane.open { transform: translateX(0); box-shadow: -8px 0 24px rgba(0,0,0,0.3); }
+.preview-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px; border-bottom: 1px solid var(--border); background: var(--surface-2);
+}
+.preview-bar .preview-title { font-size: 13px; font-weight: 600; }
+.preview-bar .preview-title small { color: var(--text-dim); font-weight: 400; }
+.preview-bar .spacer { flex: 1; }
+.preview-status { font-size: 12px; color: var(--text-dim); }
+.preview-status.up { color: #4ade80; }
+.preview-bar button {
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 9px; cursor: pointer; font-size: 13px;
+}
+.preview-bar button:hover { background: var(--border); }
+#preview-frame { flex: 1; width: 100%; border: 0; background: #fff; }
+#app.preview-open > header, #app.preview-open > main { margin-right: 600px; }
+@media (max-width: 1000px) {
+  #app.preview-open > header, #app.preview-open > main { margin-right: 0; }
+}
+.drawer h2 { margin: 0 0 12px; font-size: 16px; }
+.drawer h2 small { color: var(--text-dim); font-weight: 400; font-size: 12px; }
+.drawer h3 {
+  margin: 18px 0 8px; font-size: 12px; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.05em;
+}
+.drawer .close {
+  position: absolute; top: 12px; right: 12px;
+  background: none; border: none; color: var(--text); font-size: 22px; cursor: pointer;
+  width: 28px; height: 28px;
+}
+.drawer label {
+  display: block; margin: 8px 0; font-size: 13px;
+}
+.drawer label.check { display: flex; align-items: center; gap: 8px; }
+.drawer label input[type="number"], .drawer textarea {
+  display: block; width: 100%; margin-top: 4px;
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  padding: 6px 8px; border-radius: 6px;
+  font-family: inherit; font-size: 13px;
+}
+.drawer textarea#system-prompt {
+  min-height: 130px; resize: vertical;
+  font-family: ui-monospace, "Menlo", monospace; font-size: 12px;
+}
+.drawer .row-buttons { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+.drawer .row-buttons button {
+  background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
+  padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+.drawer .row-buttons button:hover { background: var(--border); }
+.drawer details { margin-top: 12px; font-size: 12px; }
+.drawer details summary { cursor: pointer; color: var(--text-dim); }
+
+#prompt-history { padding-left: 18px; font-size: 12px; margin: 8px 0 0; }
+#prompt-history li { margin-bottom: 12px; }
+#prompt-history .hist-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 4px; gap: 8px;
+}
+#prompt-history small {
+  color: var(--text-dim); flex: 1 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+#prompt-history .hist-restore {
+  background: var(--accent); color: black; border: none;
+  font-size: 11px; padding: 3px 10px; border-radius: 4px; cursor: pointer;
+  font-weight: 600; flex-shrink: 0;
+}
+#prompt-history .hist-restore:hover { filter: brightness(1.1); }
+#prompt-history pre {
+  white-space: pre-wrap; background: var(--bg); padding: 6px 8px; border-radius: 4px;
+  max-height: 120px; overflow-y: auto; margin: 0; font-size: 11px;
+}
+
+#file-path, #ws-path {
+  font-family: ui-monospace, "Menlo", monospace;
+  padding: 6px 8px; background: var(--bg); border-radius: 4px;
+  margin: 8px 0; font-size: 12px; color: var(--text-dim);
+  word-break: break-all;
+}
+#file-list, #ws-list { list-style: none; padding: 0; margin: 0; }
+#file-list .file, #ws-list .file {
+  padding: 6px 8px; cursor: pointer; border-radius: 4px;
+  display: flex; align-items: center; gap: 6px; font-size: 13px;
+}
+#file-list .file:hover, #ws-list .file:hover { background: var(--surface-2); }
+#file-list .file.unsupported { color: var(--text-dim); cursor: default; }
+#file-list .file.unsupported:hover { background: transparent; }
+#file-list .file small, #ws-list .file small {
+  margin-left: auto; color: var(--text-dim); font-size: 11px;
+}
+
+body.dragging::after {
+  content: "Drop file to attach";
+  position: fixed; inset: 12px;
+  background: rgba(118, 185, 0, 0.08); border: 2px dashed var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; color: var(--accent); pointer-events: none; z-index: 100;
+  border-radius: 12px;
+}
+
+.error { color: var(--error); margin-top: 6px; font-size: 13px; }
+
+/* File preview modal */
+#modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
+  z-index: 50; display: flex; align-items: center; justify-content: center;
+}
+#modal-backdrop.hidden { display: none; }
+#file-modal {
+  width: min(900px, 90vw); height: min(80vh, 720px);
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+#file-modal header {
+  display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+  border-bottom: 1px solid var(--border); background: var(--surface-2);
+}
+#file-modal header #file-modal-path {
+  font-family: ui-monospace, "Menlo", monospace; font-size: 13px;
+  color: var(--text-dim); flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis;
+}
+#file-modal header .spacer { flex: 1; }
+#file-modal header button {
+  background: var(--surface); color: var(--text); border: 1px solid var(--border);
+  padding: 4px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;
+}
+#file-modal header button:hover { background: var(--border); }
+#file-modal-body { flex: 1; overflow: auto; padding: 0; }
+#file-modal-body pre {
+  margin: 0; padding: 12px; font-size: 12px; line-height: 1.5;
+  background: var(--bg); height: 100%;
+}
+#file-modal-edit {
+  width: 100%; height: 100%; background: var(--bg); color: var(--text);
+  border: none; padding: 12px; font-family: ui-monospace, "Menlo", monospace; font-size: 12px;
+  resize: none; line-height: 1.5;
+}
+.hidden { display: none !important; }

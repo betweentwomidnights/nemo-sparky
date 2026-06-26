@@ -1,0 +1,14 @@
+# Generated output / runtime state (not source)
+media/
+conversations/
+sandbox/workspace/
+.sandbox-history/
+
+# Python
+__pycache__/
+*.pyc
+
+# Secrets / local env
+.env
+.env.*
+*.local

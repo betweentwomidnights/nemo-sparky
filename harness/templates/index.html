@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nemo · Omni</title>
+  <link rel="stylesheet" href="/static/app.css?v={{ app_css }}">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11/styles/atom-one-dark.min.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>Nemo <span class="dim">· Omni</span></h1>
+      <button id="btn-workspace" title="Show Nemo's workspace">📁 workspace</button>
+      <button id="btn-preview" title="Preview the app Nemo is serving">▶ preview</button>
+      <button id="btn-files" title="Browse host files">🗂  files</button>
+      <button id="btn-settings" title="Settings">⚙ settings</button>
+      <button id="btn-reset" title="New conversation">+ new</button>
+    </header>
+
+    <main>
+      <div id="messages"></div>
+      <form id="composer">
+        <div id="attachments"></div>
+        <div class="row">
+          <textarea id="input" placeholder="Type a message, or drop a file anywhere…" rows="1"></textarea>
+          <input type="file" id="file-input" hidden multiple>
+          <button type="button" id="btn-attach" title="Attach from your computer">📎</button>
+          <button type="submit" id="btn-send">Send</button>
+        </div>
+      </form>
+    </main>
+
+    <aside id="workspace-drawer" class="drawer drawer-left">
+      <button class="close" data-target="workspace-drawer">×</button>
+      <h2>Workspace <small>/workspace</small></h2>
+      <div class="row-buttons">
+        <button id="btn-ws-refresh" title="Refresh">↻ refresh</button>
+        <button id="btn-ws-mkdir" title="New directory">＋ dir</button>
+        <button id="btn-ws-newfile" title="New file">＋ file</button>
+      </div>
+      <div id="ws-path"></div>
+      <ul id="ws-list"></ul>
+    </aside>
+
+    <aside id="settings-drawer" class="drawer">
+      <button class="close" data-target="settings-drawer">×</button>
+      <h2>Settings</h2>
+
+      <h3>System prompt</h3>
+      <textarea id="system-prompt" rows="6"></textarea>
+      <div class="row-buttons">
+        <button id="btn-save-prompt">Save prompt</button>
+      </div>
+      <details>
+        <summary>Edit history</summary>
+        <ol id="prompt-history"></ol>
+      </details>
+
+      <h3>Generation</h3>
+      <label>Temperature
+        <input type="number" id="set-temperature" step="0.05" min="0" max="2">
+      </label>
+      <label>Top-p
+        <input type="number" id="set-top-p" step="0.05" min="0" max="1">
+      </label>
+      <label>Max tokens
+        <input type="number" id="set-max-tokens" step="64" min="64" max="32768">
+      </label>
+
+      <h3>Reasoning</h3>
+      <label class="check">
+        <input type="checkbox" id="set-enable-thinking">
+        <span>Enable thinking</span>
+      </label>
+      <label>Thinking token budget
+        <input type="number" id="set-thinking-budget" step="256" min="0" max="32768">
+      </label>
+
+      <h3>Tools</h3>
+      <label class="check">
+        <input type="checkbox" id="set-tools-enabled">
+        <span>Enable sandbox tools (file ops, shell, processes)</span>
+      </label>
+
+      <h3>Multimodal</h3>
+      <label class="check">
+        <input type="checkbox" id="set-use-audio-in-video">
+        <span>Extract audio from attached video</span>
+      </label>
+    </aside>
+
+    <aside id="files-drawer" class="drawer">
+      <button class="close" data-target="files-drawer">×</button>
+      <h2>Host files <small id="browse-root"></small></h2>
+      <div id="file-path"></div>
+      <ul id="file-list"></ul>
+    </aside>
+
+    <aside id="preview-pane">
+      <div class="preview-bar">
+        <span class="preview-title">▶ Preview <small>:7777</small></span>
+        <span class="preview-status" id="preview-status"></span>
+        <span class="spacer"></span>
+        <button id="btn-preview-reload" title="Reload preview">↻</button>
+        <button id="btn-preview-open" title="Open in a new tab">⇱</button>
+        <button class="close" data-target="preview-pane" title="Close">×</button>
+      </div>
+      <iframe id="preview-frame" title="Nemo's app preview"
+              sandbox="allow-scripts allow-forms allow-popups allow-modals"></iframe>
+    </aside>
+
+    <div id="modal-backdrop" class="hidden">
+      <div id="file-modal">
+        <header>
+          <span id="file-modal-path"></span>
+          <span class="spacer"></span>
+          <button id="btn-file-edit">Edit</button>
+          <button id="btn-file-save" class="hidden">Save</button>
+          <button id="btn-file-delete">Delete</button>
+          <button id="btn-file-close">×</button>
+        </header>
+        <div id="file-modal-body">
+          <pre id="file-modal-view"><code></code></pre>
+          <textarea id="file-modal-edit" class="hidden"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/highlight.js@11/lib/common.min.js"></script>
+  <script src="/static/app.js?v={{ app_js }}"></script>
+</body>
+</html>
