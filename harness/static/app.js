@@ -609,8 +609,9 @@ $("#btn-threads").addEventListener("click", async () => {
   const drawer = $("#threads-drawer");
   // Threads and workspace share the left rail — don't stack them.
   $("#workspace-drawer").classList.remove("open");
-  $("#app").classList.remove("ws-open");
   drawer.classList.toggle("open");
+  // Squeeze the chat aside like the workspace drawer instead of overlaying it.
+  $("#app").classList.toggle("ws-open", drawer.classList.contains("open"));
   if (drawer.classList.contains("open")) await loadThreads();
 });
 $("#btn-thread-new").addEventListener("click", newThread);
@@ -657,7 +658,7 @@ $("#btn-preview-open").addEventListener("click", () => window.open("/preview/", 
 
 $$(".close").forEach((btn) => btn.addEventListener("click", () => {
   $(`#${btn.dataset.target}`).classList.remove("open");
-  if (btn.dataset.target === "workspace-drawer") $("#app").classList.remove("ws-open");
+  if (btn.dataset.target === "workspace-drawer" || btn.dataset.target === "threads-drawer") $("#app").classList.remove("ws-open");
   if (btn.dataset.target === "preview-pane") $("#app").classList.remove("preview-open");
 }));
 

@@ -155,9 +155,9 @@ main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .drawer.open { transform: translateX(0); box-shadow: -8px 0 24px rgba(0,0,0,0.3); }
 .drawer.drawer-left.open { box-shadow: 8px 0 24px rgba(0,0,0,0.3); }
 
-/* When the left workspace drawer is open, squeeze the chat beside it instead
-   of letting the drawer cover it. Header + main shift right by the drawer
-   width; #messages (max-width 1080, auto-centered) just re-wraps narrower. */
+/* When a left drawer (workspace or threads) is open, squeeze the chat beside
+   it instead of letting the drawer cover it. Header + main shift right by the
+   drawer width; #messages (max-width 1080, auto-centered) just re-wraps narrower. */
 #app > header, #app > main { transition: margin 0.18s ease-out; }
 #app.ws-open > header, #app.ws-open > main { margin-left: 400px; }
 /* Too narrow to give both a fair share — fall back to the old overlay. */
