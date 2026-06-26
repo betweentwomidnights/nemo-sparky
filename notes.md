@@ -114,9 +114,30 @@ The harness exposes these to the model as OpenAI tool schemas; vLLM's
 **MAX_TOOL_ROUNDS=15** times per turn, executing tool calls and feeding
 results back to the model.
 
-`update_system_prompt` is also a tool — when Nemo calls it, the new prompt
-goes through the same code path as a user edit and shows up in the prompt
-history with `source: "model"`. This is the "Nemo edits itself" hook.
+One more tool isn't a sandbox endpoint: **`remember`** — it appends markdown to
+Nemo's persistent memory at `/workspace/.nemo/MEMORY.md` (created on first use),
+which the harness auto-loads into his system prompt on every future
+conversation. It's implemented harness-side via the `/fs/file` API. This is the
+model's self-memory; for bigger reorganizations Nemo uses `read_file` +
+`write_file` on that same file directly.
+
+### Self-editing: what Nemo can and can't change (open question)
+
+Today the model can edit its own **memory** (`remember`) and its **workspace**
+files, but **not** its own system prompt. `update_system_prompt` is only the
+`PATCH /api/session/system-prompt` HTTP route behind the ⚙ settings drawer — a
+*human* edits the prompt there. It is **not** registered as a model tool, so
+Nemo cannot rewrite his own system prompt. (An earlier version of this note
+claimed it was a model tool; that was never actually wired in.)
+
+**This is an open design question, not a settled decision.** The intent is to
+make as much of the harness model-editable as is *sane*. Memory: in. Live
+system-prompt self-editing: currently out — a model rewriting its own prompt
+mid-session is a sharp edge worth gating carefully. If we revisit it, sane
+guardrails might include append-only edits (not full overwrite), a
+human-approval step, or leaning on the existing prompt-edit history (the route
+already records `source` and keeps a `system_prompt_history` list) so any model
+change stays reviewable and revertible.
 
 ### Workspace persistence
 
