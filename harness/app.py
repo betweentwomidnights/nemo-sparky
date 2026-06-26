@@ -30,7 +30,7 @@ MEDIA_ROOT = pathlib.Path(os.environ.get("MEDIA_ROOT", "/media")).resolve()
 CONVERSATIONS_DIR = pathlib.Path(os.environ.get("CONVERSATIONS_DIR", "/app/conversations"))
 CONVERSATIONS_DIR.mkdir(parents=True, exist_ok=True)
 
-MAX_TOOL_ROUNDS = 15
+MAX_TOOL_ROUNDS = int(os.environ.get("MAX_TOOL_ROUNDS", "15"))
 EXEC_HTTP_TIMEOUT = 320  # slightly more than sandbox's MAX_EXEC_TIMEOUT
 
 MEMORY_PATH = ".nemo/MEMORY.md"

@@ -31,7 +31,7 @@ services:
       - "--port=8000"
       - "--trust-remote-code"
       - "--tensor-parallel-size=1"
-      - "--max-model-len=32768"
+      - "--max-model-len=${VLLM_MAX_MODEL_LEN:-32768}"
       - "--max-num-seqs=8"
       - "--max-num-batched-tokens=16384"
       - "--gpu-memory-utilization=0.35"
@@ -73,6 +73,7 @@ services:
       - MEDIA_ROOT=/media
       - CONVERSATIONS_DIR=/app/conversations
       - FLASK_SECRET_KEY=${FLASK_SECRET_KEY:-nemo-omni-dev-secret}
+      - MAX_TOOL_ROUNDS=${MAX_TOOL_ROUNDS:-15}
     depends_on:
       - nemotron-omni
       - sandbox
