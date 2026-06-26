@@ -1,12 +1,12 @@
 services:
   nemotron-omni:
     build: .
-    image: nemotron-omni-vllm:local
-    container_name: nemotron-omni
+    image: ${VLLM_IMAGE:-nemotron-omni-vllm:local}
+    container_name: ${VLLM_CONTAINER:-nemotron-omni}
     ipc: host
     shm_size: "16g"
     ports:
-      - "30030:8000"
+      - "${VLLM_PORT:-30030}:8000"
     volumes:
       - ${HOME}/.cache/huggingface:/root/.cache/huggingface
       - ./media:/media:ro
@@ -48,10 +48,10 @@ services:
 
   harness:
     build: ./harness
-    image: nemotron-omni-harness:local
-    container_name: nemotron-harness
+    image: ${HARNESS_IMAGE:-nemotron-omni-harness:local}
+    container_name: ${HARNESS_CONTAINER:-nemotron-harness}
     ports:
-      - "30031:8000"
+      - "${HARNESS_PORT:-30031}:8000"
     volumes:
       - ./media:/media
       - ./conversations:/app/conversations
@@ -84,8 +84,8 @@ services:
     # :current, which is what runs here. `nemoctl up` seeds :current from :local
     # on first run. Do NOT add `build:` back — that would let `compose build`
     # overwrite Nemo's evolved image. Use `nemoctl reset` for a factory reset.
-    image: nemotron-omni-sandbox:current
-    container_name: nemo-omni-sandbox
+    image: ${SANDBOX_IMAGE:-nemotron-omni-sandbox:current}
+    container_name: ${SANDBOX_CONTAINER:-nemo-omni-sandbox}
     # No `ports:` — sandbox is reachable only on the compose internal network.
     # The only host bind is the workspace itself, so the model cannot reach
     # any other host file from inside this container.

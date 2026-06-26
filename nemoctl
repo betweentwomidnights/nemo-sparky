@@ -18,8 +18,18 @@ SELF="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]
 PROJECT_DIR="$(dirname "$SELF")"
 cd "$PROJECT_DIR"
 
-SANDBOX_CONTAINER="nemo-omni-sandbox"
-IMG="nemotron-omni-sandbox"
+# Per-checkout instance config. An optional .env (the same file docker compose
+# reads) lets a second checkout — e.g. the shared /var/local/shared clone — run
+# a fully isolated instance with its own image tags, container names, and ports
+# on the shared Docker daemon. No .env present = the original private instance,
+# unchanged. SANDBOX_IMAGE must end in ':current'.
+if [ -f "$PROJECT_DIR/.env" ]; then
+  set -a; . "$PROJECT_DIR/.env"; set +a
+fi
+
+SANDBOX_CONTAINER="${SANDBOX_CONTAINER:-nemo-omni-sandbox}"
+SANDBOX_IMAGE="${SANDBOX_IMAGE:-nemotron-omni-sandbox:current}"
+IMG="${SANDBOX_IMAGE%%:*}"
 IMG_BASE="$IMG:local"
 IMG_CURRENT="$IMG:current"
 
