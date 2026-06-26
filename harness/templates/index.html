@@ -11,6 +11,7 @@
   <div id="app">
     <header>
       <h1>Nemo <span class="dim">· Omni</span></h1>
+      <button id="btn-threads" title="Conversations">🧵 threads</button>
       <button id="btn-workspace" title="Show Nemo's workspace">📁 workspace</button>
       <button id="btn-preview" title="Preview the app Nemo is serving">▶ preview</button>
       <button id="btn-files" title="Browse host files">🗂  files</button>
@@ -41,6 +42,15 @@
       </div>
       <div id="ws-path"></div>
       <ul id="ws-list"></ul>
+    </aside>
+
+    <aside id="threads-drawer" class="drawer drawer-left">
+      <button class="close" data-target="threads-drawer">×</button>
+      <h2>Conversations <small>switch · they keep their own history</small></h2>
+      <div class="row-buttons">
+        <button id="btn-thread-new">＋ new conversation</button>
+      </div>
+      <ul id="thread-list"></ul>
     </aside>
 
     <aside id="settings-drawer" class="drawer">

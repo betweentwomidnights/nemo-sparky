@@ -347,6 +347,7 @@ def load_conversation(sid: str) -> dict:
     return {
         "id": sid,
         "created_at": now,
+        "title": "",
         "system_prompt": DEFAULT_SYSTEM_PROMPT,
         "system_prompt_history": [
             {"ts": now, "source": "default", "content": DEFAULT_SYSTEM_PROMPT}
@@ -357,7 +358,59 @@ def load_conversation(sid: str) -> dict:
 
 
 def save_conversation(conv: dict) -> None:
+    conv["updated_at"] = time.time()
     conversation_path(conv["id"]).write_text(json.dumps(conv, indent=2))
+
+
+def current_thread_id() -> str:
+    """The conversation the browser is viewing. If the session has no active
+    thread yet (or its file was deleted), resume the most recently updated
+    conversation so you pick up where you left off; only mint a fresh id when
+    there are no conversations at all (and the legacy per-session id seeds it)."""
+    tid = session.get("thread")
+    if tid and conversation_path(tid).exists():
+        return tid
+    existing = list_threads("")
+    tid = existing[0]["id"] if existing else get_session_id()
+    session["thread"] = tid
+    return tid
+
+
+def valid_tid(tid: str) -> bool:
+    # Our ids are uuid4().hex (alphanumeric). Reject anything else so a crafted
+    # id can't escape CONVERSATIONS_DIR through the filename.
+    return bool(tid) and tid.isalnum()
+
+
+def thread_title(conv: dict) -> str:
+    if conv.get("title"):
+        return conv["title"]
+    for m in conv.get("messages", []):
+        if m.get("role") == "user":
+            text = (m.get("text") or "").strip().replace("\n", " ")
+            if text:
+                return text[:60]
+    return "New conversation"
+
+
+def list_threads(active_id: str) -> list:
+    threads = []
+    for path in CONVERSATIONS_DIR.glob("*.json"):
+        try:
+            conv = json.loads(path.read_text())
+        except (OSError, ValueError):
+            continue
+        tid = conv.get("id", path.stem)
+        threads.append({
+            "id": tid,
+            "title": thread_title(conv),
+            "message_count": sum(1 for m in conv.get("messages", []) if m.get("role") == "user"),
+            "created_at": conv.get("created_at"),
+            "updated_at": conv.get("updated_at") or path.stat().st_mtime,
+            "active": tid == active_id,
+        })
+    threads.sort(key=lambda t: t["updated_at"] or 0, reverse=True)
+    return threads
 
 
 def under_root(target: pathlib.Path, root: pathlib.Path) -> bool:
@@ -451,12 +504,12 @@ def index():
 
 @app.route("/api/session")
 def api_session():
-    return jsonify(load_conversation(get_session_id()))
+    return jsonify(load_conversation(current_thread_id()))
 
 
 @app.route("/api/session/system-prompt", methods=["PATCH"])
 def api_update_system_prompt():
-    sid = get_session_id()
+    sid = current_thread_id()
     conv = load_conversation(sid)
     body = request.get_json() or {}
     new_prompt = body.get("content", "")
@@ -471,7 +524,7 @@ def api_update_system_prompt():
 
 @app.route("/api/session/settings", methods=["PATCH"])
 def api_update_settings():
-    sid = get_session_id()
+    sid = current_thread_id()
     conv = load_conversation(sid)
     body = request.get_json() or {}
     for key, val in body.items():
@@ -483,11 +536,62 @@ def api_update_settings():
 
 @app.route("/api/session/reset", methods=["POST"])
 def api_reset():
-    sid = get_session_id()
+    sid = current_thread_id()
     conv = load_conversation(sid)
     conv["messages"] = []
     save_conversation(conv)
     return jsonify({"ok": True})
+
+
+# --- Threads (multiple conversations you can switch between) ----------------
+
+@app.route("/api/threads")
+def api_threads():
+    active = current_thread_id()
+    return jsonify({"active": active, "threads": list_threads(active)})
+
+
+@app.route("/api/threads", methods=["POST"])
+def api_threads_new():
+    tid = uuid.uuid4().hex
+    save_conversation(load_conversation(tid))   # fresh default, persisted
+    session["thread"] = tid
+    return jsonify({"ok": True, "active": tid})
+
+
+@app.route("/api/threads/activate", methods=["POST"])
+def api_threads_activate():
+    tid = (request.get_json() or {}).get("id", "")
+    if not valid_tid(tid) or not conversation_path(tid).exists():
+        return jsonify({"error": "no such thread"}), 404
+    session["thread"] = tid
+    return jsonify({"ok": True, "active": tid})
+
+
+@app.route("/api/threads/<tid>", methods=["PATCH"])
+def api_threads_rename(tid):
+    if not valid_tid(tid) or not conversation_path(tid).exists():
+        return jsonify({"error": "no such thread"}), 404
+    conv = load_conversation(tid)
+    conv["title"] = ((request.get_json() or {}).get("title") or "").strip()[:120]
+    save_conversation(conv)
+    return jsonify({"ok": True, "title": conv["title"]})
+
+
+@app.route("/api/threads/<tid>", methods=["DELETE"])
+def api_threads_delete(tid):
+    if not valid_tid(tid):
+        return jsonify({"error": "bad id"}), 400
+    conversation_path(tid).unlink(missing_ok=True)
+    if session.get("thread") == tid:
+        remaining = list_threads(tid)
+        if remaining:
+            session["thread"] = remaining[0]["id"]
+        else:
+            ntid = uuid.uuid4().hex
+            save_conversation(load_conversation(ntid))
+            session["thread"] = ntid
+    return jsonify({"ok": True, "active": session["thread"]})
 
 
 # --- Media uploads ---------------------------------------------------------
@@ -742,7 +846,7 @@ def sse(event: str, data: dict) -> str:
 
 @app.route("/api/chat", methods=["POST"])
 def api_chat():
-    sid = get_session_id()
+    sid = current_thread_id()
     body = request.get_json() or {}
     user_text = body.get("text", "")
     attachments = body.get("attachments", []) or []

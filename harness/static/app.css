@@ -268,6 +268,31 @@ main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
   margin-left: auto; color: var(--text-dim); font-size: 11px;
 }
 
+/* Threads / conversation list */
+#thread-list { list-style: none; padding: 0; margin: 10px 0 0; }
+#thread-list .thread {
+  padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 4px;
+  border: 1px solid transparent; background: var(--surface-2);
+}
+#thread-list .thread:hover { background: var(--border); }
+#thread-list .thread.active { border-color: var(--accent); }
+#thread-list .thread .title {
+  display: block; font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#thread-list .thread .meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 3px; font-size: 11px; color: var(--text-dim);
+}
+#thread-list .thread .meta .spacer { flex: 1; }
+#thread-list .thread .act {
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 12px; padding: 0 3px; line-height: 1;
+}
+#thread-list .thread .act:hover { color: var(--text); }
+#thread-list .thread .act.del:hover { color: var(--error); }
+#thread-list .empty { color: var(--text-dim); font-size: 13px; padding: 8px 2px; }
+
 body.dragging::after {
   content: "Drop file to attach";
   position: fixed; inset: 12px;

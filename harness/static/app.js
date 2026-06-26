@@ -256,6 +256,83 @@ async function loadSession() {
   populateSettings();
 }
 
+// ---------- threads (multiple conversations) -------------------------------
+
+function relTime(ts) {
+  if (!ts) return "";
+  const s = Math.max(0, Date.now() / 1000 - ts);
+  if (s < 60) return "just now";
+  if (s < 3600) return `${Math.floor(s / 60)}m ago`;
+  if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
+  return `${Math.floor(s / 86400)}d ago`;
+}
+
+async function loadThreads() {
+  const data = await api("/api/threads");
+  renderThreads(data.threads);
+}
+
+function renderThreads(threads) {
+  const ul = $("#thread-list");
+  ul.innerHTML = "";
+  if (!threads.length) {
+    ul.innerHTML = `<li class="empty">No conversations yet.</li>`;
+    return;
+  }
+  for (const t of threads) {
+    const li = document.createElement("li");
+    li.className = "thread" + (t.active ? " active" : "");
+    li.title = t.updated_at ? new Date(t.updated_at * 1000).toLocaleString() : "";
+    li.innerHTML = `
+      <span class="title">${escapeHtml(t.title)}</span>
+      <span class="meta">
+        <span>${t.message_count} msg · ${escapeHtml(relTime(t.updated_at))}</span>
+        <span class="spacer"></span>
+        <button class="act rename" title="Rename">✎</button>
+        <button class="act del" title="Delete">🗑</button>
+      </span>`;
+    li.addEventListener("click", (e) => {
+      if (e.target.closest(".act")) return;
+      if (!t.active) switchThread(t.id);
+    });
+    li.querySelector(".rename").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      const name = prompt("Rename conversation:", t.title);
+      if (name == null) return;
+      await fetch(`/api/threads/${t.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: name }),
+      });
+      await loadThreads();
+    });
+    li.querySelector(".del").addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (!confirm(`Delete "${t.title}"? This removes its history (Nemo's workspace and memory are untouched).`)) return;
+      await api(`/api/threads/${t.id}`, { method: "DELETE" });
+      await loadThreads();
+      if (t.active) await loadSession();   // server switched us to another thread
+    });
+    ul.appendChild(li);
+  }
+}
+
+async function switchThread(id) {
+  await api("/api/threads/activate", { method: "POST", body: JSON.stringify({ id }) });
+  await loadSession();
+  await loadThreads();
+}
+
+async function newThread() {
+  await api("/api/threads", { method: "POST", body: JSON.stringify({}) });
+  await loadSession();
+  await loadThreads();
+}
+
+function maybeRefreshThreads() {
+  if ($("#threads-drawer").classList.contains("open")) loadThreads();
+}
+
 // ---------- attachments ----------------------------------------------------
 
 async function uploadFile(file) {
@@ -434,6 +511,7 @@ $("#composer").addEventListener("submit", async (e) => {
     $("#btn-send").disabled = false;
     await loadSession();           // re-sync from server's persisted state
     refreshWorkspace();            // tools may have written files
+    maybeRefreshThreads();         // title/count/order may have changed
   }
 });
 
@@ -527,8 +605,19 @@ async function handleStreamEvent(event, data, bufferFor) {
 
 // ---------- drawers --------------------------------------------------------
 
+$("#btn-threads").addEventListener("click", async () => {
+  const drawer = $("#threads-drawer");
+  // Threads and workspace share the left rail — don't stack them.
+  $("#workspace-drawer").classList.remove("open");
+  $("#app").classList.remove("ws-open");
+  drawer.classList.toggle("open");
+  if (drawer.classList.contains("open")) await loadThreads();
+});
+$("#btn-thread-new").addEventListener("click", newThread);
+
 $("#btn-workspace").addEventListener("click", async () => {
   const drawer = $("#workspace-drawer");
+  $("#threads-drawer").classList.remove("open");
   drawer.classList.toggle("open");
   $("#app").classList.toggle("ws-open", drawer.classList.contains("open"));
   if (drawer.classList.contains("open")) await refreshWorkspace();
@@ -616,11 +705,9 @@ for (const [elId, key] of Object.entries(BOOL_FIELDS)) {
   });
 }
 
-$("#btn-reset").addEventListener("click", async () => {
-  if (!confirm("Start a new conversation? This clears messages but keeps the system prompt.")) return;
-  await fetch("/api/session/reset", { method: "POST" });
-  await loadSession();
-});
+// "+ new" now spins up a fresh conversation/thread instead of wiping the
+// current one — the old conversation stays around in the threads list.
+$("#btn-reset").addEventListener("click", newThread);
 
 // ---------- host file browser ----------------------------------------------
 
