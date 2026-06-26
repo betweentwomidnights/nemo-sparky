@@ -31,7 +31,7 @@ services:
       - "--port=8000"
       - "--trust-remote-code"
       - "--tensor-parallel-size=1"
-      - "--max-model-len=${VLLM_MAX_MODEL_LEN:-32768}"
+      - "--max-model-len=${VLLM_MAX_MODEL_LEN:-131072}"
       - "--max-num-seqs=8"
       - "--max-num-batched-tokens=16384"
       - "--gpu-memory-utilization=0.35"

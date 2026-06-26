@@ -169,15 +169,25 @@ not for max throughput.
 
 | Flag | Value | Why |
 |---|---|---|
-| `--max-model-len` | 32768 | Down from 131k default. KV cache shrinks ~4×. |
+| `--max-model-len` | 131072 | Full rated 128k. Env-overridable via `VLLM_MAX_MODEL_LEN`. Cheap here — see below. |
 | `--kv-cache-dtype` | fp8 | Halves KV cache vs BF16. |
-| `--gpu-memory-utilization` | 0.35 | Caps vLLM at ~45 GB of unified memory; leaves room for gary-backend's ~30 GB working set. |
+| `--gpu-memory-utilization` | 0.35 | Reserves ~42 GB of unified memory; gary's real (anon) working set is only ~24 GB. |
 | `--max-num-seqs` | 8 | Default 384 is wildly oversized for a shared box. |
-| `--max-num-batched-tokens` | 16384 | Matches the smaller batch. |
+| `--max-num-batched-tokens` | 16384 | Prefill chunk size; bounds worst-case long-prompt prefill. |
 | `--video-pruning-rate` | 0.5 | Drops half the video tokens; cheap quality hit, big memory win. |
 
-If gary-backend isn't running, you can push `--gpu-memory-utilization` to 0.7
-and bump `--max-model-len` to 65536 or 131072 for headroom.
+**Why long context is cheap on this model (measured 2026-06-26).** It's a hybrid
+Mamba-Transformer: of 52 layers only **6 are attention** (the rest are Mamba/MoE),
+and those use GQA with 2 KV heads + fp8. vLLM's KV pool is sized by
+`--gpu-memory-utilization`, **not** by `--max-model-len`, so raising the context
+cap is free at baseline. At 0.35 util, vLLM reports ~13.9 GiB KV / **970k tokens**
+→ **32.6× concurrency at 131072** (and still 17× at the 262144 rated max). Set the
+cap with `VLLM_MAX_MODEL_LEN`; 262144 also boots fine if you want it.
+
+Caveat: ~28 GiB of the 0.35 budget is **fixed** (weights ~21 GB + the vision/audio
+encoders + CUDA graphs), leaving ~14 GiB for KV — so do **not** push
+`--gpu-memory-utilization` below ~0.30 or KV gets starved. There's no need to;
+gary leaves plenty of headroom (`free -h` shows ~79 GB available with gary up).
 
 ## Multimodal inputs
 
@@ -193,11 +203,17 @@ The Spark has 128 GB unified memory shared between CPU and GPU.
 Watch with `free -h`, **not** `nvidia-smi` — the Memory-Usage column reads
 "Not Supported" on GB10 and the per-process numbers undercount.
 
-Rough footprint at the configured flags:
-- Weights: ~21 GB
-- KV cache (32k context, 8 seqs, fp8): ~6–8 GB
-- Activations / overhead: ~3–5 GB
-- **Total: ~30–35 GB**
+Measured footprint at the configured flags (vLLM startup log, 2026-06-26):
+- Weights + vision/audio encoders + CUDA graphs (fixed): ~28 GB
+- KV cache pool (sized by `--gpu-memory-utilization`, ~970k tokens): ~14 GB
+- **Total: ~42 GB** (= 0.35 of the 119 GB usable unified memory)
+
+Note `docker stats` over-reports container memory on this box: it counts
+mmap'd model weights sitting in **reclaimable page cache** against the cgroup.
+Check `anon` in a container's `memory.stat` (or `free -h` "available") for the
+true non-reclaimable footprint — gary's is ~24 GB, not the ~50 GB `docker stats`
+implies. `expandable_segments:True` keeps the torch allocator lean; the cache is
+the kernel's, not torch's.
 
 ## Gotchas
 
