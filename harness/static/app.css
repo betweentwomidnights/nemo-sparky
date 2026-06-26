@@ -155,9 +155,9 @@ main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .drawer.open { transform: translateX(0); box-shadow: -8px 0 24px rgba(0,0,0,0.3); }
 .drawer.drawer-left.open { box-shadow: 8px 0 24px rgba(0,0,0,0.3); }
 
-/* When the left workspace drawer is open, squeeze the chat beside it instead
-   of letting the drawer cover it. Header + main shift right by the drawer
-   width; #messages (max-width 1080, auto-centered) just re-wraps narrower. */
+/* When a left drawer (workspace or threads) is open, squeeze the chat beside
+   it instead of letting the drawer cover it. Header + main shift right by the
+   drawer width; #messages (max-width 1080, auto-centered) just re-wraps narrower. */
 #app > header, #app > main { transition: margin 0.18s ease-out; }
 #app.ws-open > header, #app.ws-open > main { margin-left: 400px; }
 /* Too narrow to give both a fair share — fall back to the old overlay. */
@@ -267,6 +267,31 @@ main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 #file-list .file small, #ws-list .file small {
   margin-left: auto; color: var(--text-dim); font-size: 11px;
 }
+
+/* Threads / conversation list */
+#thread-list { list-style: none; padding: 0; margin: 10px 0 0; }
+#thread-list .thread {
+  padding: 8px 10px; border-radius: 6px; cursor: pointer; margin-bottom: 4px;
+  border: 1px solid transparent; background: var(--surface-2);
+}
+#thread-list .thread:hover { background: var(--border); }
+#thread-list .thread.active { border-color: var(--accent); }
+#thread-list .thread .title {
+  display: block; font-size: 13px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#thread-list .thread .meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 3px; font-size: 11px; color: var(--text-dim);
+}
+#thread-list .thread .meta .spacer { flex: 1; }
+#thread-list .thread .act {
+  background: none; border: none; color: var(--text-dim);
+  cursor: pointer; font-size: 12px; padding: 0 3px; line-height: 1;
+}
+#thread-list .thread .act:hover { color: var(--text); }
+#thread-list .thread .act.del:hover { color: var(--error); }
+#thread-list .empty { color: var(--text-dim); font-size: 13px; padding: 8px 2px; }
 
 body.dragging::after {
   content: "Drop file to attach";
